@@ -1,0 +1,402 @@
+//
+//  main.swift
+//  DungeonMinotauro
+//
+//  Created by YGOR FERREIRA DE MELO on 14/11/25.
+//
+
+import Foundation
+
+// ENUM DE DIREÇÕES
+
+enum Direcao: String, CaseIterable {
+    case norte, sul, leste, oeste
+}
+
+// CLASSES
+
+class Inimigo {
+    let tipo: TipoInimigo
+    var vida: Int
+    var ataque: Int
+    var bonusFuga: Int
+
+    init(tipo: TipoInimigo, vida: Int, ataque: Int, bonusFuga: Int) {
+        self.tipo = tipo
+        self.vida = vida
+        self.ataque = ataque
+        self.bonusFuga = bonusFuga
+    }
+}
+
+enum TipoInimigo {
+    case goblin🧌
+    case esqueleto💀
+    case aranha🕷️
+    case minotauro🐂
+    case sombra👻
+}
+
+class Sala {
+    let id: String
+    let nome: String
+    let descricao: String
+    let caminhos: [Direcao: String]
+    var inimigo: Inimigo?
+
+    init(id: String, nome: String, descricao: String, saidas: [Direcao: String], inimigo: Inimigo?) {
+        self.id = id
+        self.nome = nome
+        self.descricao = descricao
+        self.caminhos = saidas
+        self.inimigo = inimigo
+    }
+}
+
+class Jogador {
+    var vida: Int
+    var ataque: Int
+    var salaAtual: String
+    var fugiuComSucesso: Bool
+    var xp: Int = 0
+    var level: Int = 1
+
+    init(vida: Int, ataque: Int, salaAtual: String, fugiuComSucesso: Bool) {
+        self.vida = vida
+        self.ataque = ataque
+        self.salaAtual = salaAtual
+        self.fugiuComSucesso = fugiuComSucesso
+    }
+}
+
+// FUNÇÕES BASE
+
+func rolarD20() -> Int {
+    Int.random(in: 1...20)
+}
+
+func tentarFugir(jogador: Jogador, inimigo: Inimigo) -> Bool {
+
+    let rollJogador = rolarD20()
+    let rollInimigo = rolarD20() + inimigo.bonusFuga
+
+    print("Você tenta fugir!")
+    print("Seu d20: \(rollJogador)")
+    print("D20 do inimigo + bônus(\(inimigo.bonusFuga)): \(rollInimigo)")
+
+    if rollJogador > rollInimigo {
+        print("Você conseguiu fugir!")
+        return true
+    }
+
+    print("Fuga falhou! O inimigo bate em você.")
+
+    jogador.vida -= inimigo.ataque
+    if jogador.vida < 0 { jogador.vida = 0 }
+
+    print("O inimigo causou \(inimigo.ataque) dano.")
+    print("Sua vida atual: \(jogador.vida)")
+
+    if jogador.vida <= 0 {
+        print("Você morreu... FIM DE JOGO.")
+        exit(0)
+    }
+
+    return false
+}
+
+// CRIAÇÃO DA DUNGEON
+
+func criarDungeon() -> [String: Sala] {
+
+    let entrada = Sala(
+        id: "entrada",
+        nome: "Entrada da Dungeon",
+        descricao: "Você está diante de um antigo portão de pedra.",
+        saidas: [.norte: "corredor_norte"],
+        inimigo: nil
+    )
+
+    let corredorNorte = Sala(
+        id: "corredor_norte",
+        nome: "Corredor Sombrio",
+        descricao: "A dungeon aqui é úmida e fria.",
+        saidas: [
+            .sul: "entrada",
+            .leste: "sala_armas",
+            .norte: "anticamera_minotauro"
+        ],
+        inimigo: Inimigo(tipo: .goblin🧌, vida: 10, ataque: 3, bonusFuga: 0)
+    )
+
+    let salaArmas = Sala(
+        id: "sala_armas",
+        nome: "Sala das Armas",
+        descricao: "Armas antigas estão espalhadas pelo chão.",
+        saidas: [
+            .sul: "corredor_norte",
+                .norte: "Tunel_sombras"
+        ],
+        inimigo: Inimigo(tipo: .aranha🕷️, vida: 13, ataque: 2, bonusFuga: 2)
+    )
+    let tunelsombra = Sala(
+        id: "Tunel_sombras",
+        nome: "Tunel das Sombras",
+        descricao: "Um corredor escuro onde sombras se movem nas paredes...",
+        saidas: [.oeste: "corredor_norte"],
+        inimigo: Inimigo(tipo: .sombra👻, vida: 17, ataque: 4, bonusFuga: 3)
+    )
+
+    let anticamera = Sala(
+        id: "anticamera_minotauro",
+        nome: "Anticâmara",
+        descricao: "O chão treme levemente...",
+        saidas: [
+            .sul: "corredor_norte",
+            .norte: "centro_dungeon"
+        ],
+        inimigo: Inimigo(tipo: .esqueleto💀, vida: 20, ataque: 5, bonusFuga: 0)
+    )
+
+    let centro = Sala(
+        id: "centro_dungeon",
+        nome: "Centro da Dungeon",
+        descricao: "O Minotauro observa você em silêncio...",
+        saidas: [.sul: "anticamera_minotauro"],
+        inimigo: Inimigo(tipo: .minotauro🐂, vida: 50, ataque: 7, bonusFuga: 5)
+    )
+
+    return [
+        "entrada": entrada,
+        "corredor_norte": corredorNorte,
+        "sala_armas": salaArmas,
+        "anticamera_minotauro": anticamera,
+        "centro_dungeon": centro,
+        "Tunel_sombras": tunelsombra
+    ]
+}
+
+// EXIBIÇÃO
+
+func mostrarSala(_ sala: Sala) {
+    print("")
+    print("==============================")
+    print("LOCAL: \(sala.nome)")
+    print("------------------------------")
+    print(sala.descricao)
+    print("")
+
+    if let i = sala.inimigo {
+        print("Há um inimigo aqui!")
+        print("Tipo: \(i.tipo)")
+        print("Vida: \(i.vida)")
+        print("Ataque: \(i.ataque)")
+        print("")
+    }
+
+    print("Caminhos:")
+    for (direcao, destino) in sala.caminhos {
+        print("- \(direcao.rawValue) -> \(destino)")
+    }
+    print("==============================")
+    print("")
+}
+
+func mostrarStatus(_ jogador: Jogador) {
+    print("Seus status:")
+    print("- Vida: \(jogador.vida) ♥️")
+    print("- Ataque: \(jogador.ataque) ⚔️")
+    print("- Sala atual: \(jogador.salaAtual)")
+    print("")
+}
+
+
+// COMBATE
+
+
+func combate(jogador: Jogador, inimigo: Inimigo) {
+    print("==============================")
+    print("  Você iniciou um combate!🤺  ")
+    print("------------------------------")
+
+
+    while jogador.vida > 0 && inimigo.vida > 0 {
+
+        print("Digite 'atacar'⚔️ ou 'fugir'🏃‍♂️💨:")
+        guard let comando = readLine() else { continue }
+
+        if comando == "fugir" {
+            let conseguiu = tentarFugir(jogador: jogador, inimigo: inimigo)
+            if conseguiu {
+                print("Você escapou!🏃‍♂️💨")
+                return
+            }
+            continue
+        }
+
+        if comando == "atacar" {
+
+            let d20 = rolarD20()
+            print("Você rolou \(d20)")
+
+            if d20 == 1 {
+                print("Falha crítica!☠️")
+                let dano = inimigo.ataque * 2
+                jogador.vida -= dano
+                print("O inimigo causou \(dano) ⚔️. Sua vida: \(jogador.vida) ♥️")
+
+            } else if d20 == 20 {
+                let dano = jogador.ataque * 2
+                inimigo.vida -= dano
+                print("Acerto crítico! Causou \(dano) ⚔️. Vida do inimigo: \(inimigo.vida) ♥️")
+
+            } else {
+                let dano = jogador.ataque
+                inimigo.vida -= dano
+                print("Você causou \(dano) ⚔️. Vida do inimigo: \(inimigo.vida) ♥️")
+            }
+
+            if inimigo.vida <= 0 {
+
+                if inimigo.tipo == .minotauro🐂 {
+                    print("===================================")
+                    print("\n🎉VOCÊ DERROTOU O MINOTAURO!🎉")
+                    print("      O portão se abre...        ")
+                    print("🤩 PARABÉNS! VOCÊ VENCEU O JOGO! 🤩")
+                    print("-----------------------------------")
+                    exit(0)
+                }
+                jogador.ataque += 1
+                print("================================================")
+                print("🤩Seu ataque aumentou!🤩 \nNovo valor de ataque: \(jogador.ataque)")
+               
+                
+                
+                return
+            }
+
+            // Turno do inimigo
+            let d20i = rolarD20()
+            print("Inimigo rolou \(d20i)")
+
+            if d20i == 1 {
+                print("O inimigo errou! 💨")
+
+            } else {
+                var dano = inimigo.ataque
+                if d20i == 20 { dano *= 2 }
+
+                jogador.vida -= dano
+                print("Inimigo causou \(dano) ⚔️. Sua vida: \(jogador.vida) ♥️")
+            }
+
+            if jogador.vida <= 0 {
+                print("==============================")
+                print("  Você morreu! FIM DE JOGO.   ")
+                print("==============================")
+                exit(0)
+            }
+        }
+    }
+}
+
+
+// MOVIMENTO
+
+func mover(jogador: Jogador, dungeon: [String: Sala]) {
+
+    let salaAtual = dungeon[jogador.salaAtual]!
+
+    if let inimigo = salaAtual.inimigo, jogador.fugiuComSucesso == false {
+
+        print("Há um inimigo aqui! Digite 'atacar'⚔️ ou 'fugir'🏃‍♂️💨:")
+
+        guard let cmd = readLine() else { return }
+
+        if cmd == "atacar" {
+            combate(jogador: jogador, inimigo: inimigo)
+
+            if inimigo.vida <= 0 {
+                salaAtual.inimigo = nil
+            }
+            return
+        }
+
+        if cmd == "fugir" {
+
+            let conseguiu = tentarFugir(jogador: jogador, inimigo: inimigo)
+
+            if conseguiu {
+                jogador.fugiuComSucesso = true
+            }
+            return
+        }
+        
+        print("==============================")
+        print("    ❌ Opção inválida.  ❌    ")
+        print("------------------------------")
+
+        return
+    }
+
+    print("Você pode ir para:")
+    for direcao in salaAtual.caminhos.keys {
+        print("- \(direcao.rawValue) ")
+    }
+
+    print("")
+    print("Digite uma direção (norte, sul, leste, oeste) ou 'sair':")
+
+    guard let cmd = readLine() else { return }
+
+    if cmd == "sair" {
+        print("")
+        print("================================================")
+        print("Você desistiu da aventura...😭 FIM DE JOGO.☠️")
+        print("------------------------------------------------")
+        exit(0)
+    }
+
+    guard let direcao = Direcao(rawValue: cmd) else {
+        print("==============================")
+        print("     🚫Direção inválida.🚫    ")
+        print("------------------------------")
+        return
+    }
+
+    if let novaSalaID = salaAtual.caminhos[direcao],
+       let novaSala = dungeon[novaSalaID] {
+
+        jogador.salaAtual = novaSalaID
+        jogador.fugiuComSucesso = false
+
+        mostrarSala(novaSala)
+        mostrarStatus(jogador)
+
+    } else {
+        print("Caminho inválido.")
+    }
+}
+
+
+// LOOP PRINCIPAL
+
+
+let dungeon = criarDungeon()
+
+let jogador = Jogador(
+    vida: 30,
+    ataque: 5,
+    salaAtual: "entrada",
+    fugiuComSucesso: false
+)
+
+if let salaInicial = dungeon[jogador.salaAtual] {
+    mostrarSala(salaInicial)
+    mostrarStatus(jogador)
+}
+
+while true {
+    mover(jogador: jogador, dungeon: dungeon)
+}
+
